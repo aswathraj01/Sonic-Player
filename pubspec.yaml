@@ -1,0 +1,79 @@
+name: sonic_player
+description: "Sonic Player - Modern music player"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # YouTube Playback (permitted IFrame player)
+  youtube_player_iframe: ^5.2.0
+
+  # HTTP
+  dio: ^5.7.0
+
+  # Local Database
+  sqflite: ^2.4.2
+  path: ^1.9.1
+
+  # Key-Value Storage
+  shared_preferences: ^2.3.5
+
+  # Image Caching
+  cached_network_image: ^3.4.1
+
+  # Environment Variables
+  flutter_dotenv: ^5.2.1
+
+  # Typography
+  google_fonts: ^6.2.1
+
+  # Loading Skeletons
+  shimmer: ^3.0.0
+
+  # UUID Generation
+  uuid: ^4.5.1
+
+  # Icons
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.17
+
+  # Supabase
+  supabase_flutter: ^2.9.0
+
+  # Audio Service (MediaSession/Notifications)
+  audio_service: ^0.18.17
+  just_audio: ^0.9.43
+
+  # Utilities
+  intl: ^0.19.0
+  connectivity_plus: ^6.1.3
+  palette_generator: ^0.3.3+4
+  flutter_animate: ^4.5.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  integration_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - assets/images/
+    - assets/icons/
