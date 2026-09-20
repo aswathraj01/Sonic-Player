@@ -18,102 +18,114 @@ class MiniPlayer extends ConsumerWidget {
 
     final song = playback.currentSong!;
 
-    return GestureDetector(
-      onTap: () => context.push('/player'),
-      child: Container(
-        height: AppConstants.miniPlayerHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.miniPlayerBg,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Progress bar
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppConstants.borderRadiusMedium),
+    return Semantics(
+      label: '${song.title} by ${song.artist}. '
+          '${playback.isPlaying ? "Playing" : "Paused"}. '
+          'Tap to open full player.',
+      button: true,
+      child: GestureDetector(
+        onTap: () => context.push('/player'),
+        child: Container(
+          height: AppConstants.miniPlayerHeight,
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.miniPlayerBg,
+            borderRadius:
+                BorderRadius.circular(AppConstants.borderRadiusMedium),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              child: LinearProgressIndicator(
-                value: playback.progress,
-                backgroundColor: AppColors.progressBackground,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                minHeight: 2,
-              ),
-            ),
-            // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    // Artwork
-                    ArtworkWidget(
-                      url: song.thumbnailUrl,
-                      size: AppConstants.artworkTiny,
-                      borderRadius: AppConstants.borderRadiusSmall,
-                    ),
-                    const SizedBox(width: 12),
-                    // Song info
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            song.title,
-                            style: AppTextStyles.miniPlayerTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            song.artist,
-                            style: AppTextStyles.miniPlayerArtist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Play/Pause
-                    _MiniPlayerButton(
-                      icon: playback.isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      onTap: () {
-                        ref.read(playbackProvider.notifier).togglePlayPause();
-                      },
-                      tooltip: playback.isPlaying ? 'Pause' : 'Play',
-                      size: 36,
-                    ),
-                    const SizedBox(width: 4),
-                    // Next
-                    _MiniPlayerButton(
-                      icon: Icons.skip_next_rounded,
-                      onTap: playback.canPlayNext
-                          ? () {
-                              ref.read(playbackProvider.notifier).skipNext();
-                            }
-                          : null,
-                      tooltip: 'Next',
-                      size: 32,
-                    ),
-                  ],
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Progress bar
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppConstants.borderRadiusMedium),
+                ),
+                child: LinearProgressIndicator(
+                  value: playback.progress,
+                  backgroundColor: AppColors.progressBackground,
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  minHeight: 2,
                 ),
               ),
-            ),
-          ],
+              // Content row
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      // Artwork
+                      ArtworkWidget(
+                        url: song.thumbnailUrl,
+                        size: AppConstants.artworkTiny,
+                        borderRadius: AppConstants.borderRadiusSmall,
+                      ),
+                      const SizedBox(width: 12),
+                      // Song info — Flexible prevents overflow on narrow screens
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              song.title,
+                              style: AppTextStyles.miniPlayerTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              song.artist,
+                              style: AppTextStyles.miniPlayerArtist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Play/Pause — excluded from parent Semantics (has its own)
+                      ExcludeSemantics(
+                        child: _MiniPlayerButton(
+                          icon: playback.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          onTap: () => ref
+                              .read(playbackProvider.notifier)
+                              .togglePlayPause(),
+                          tooltip:
+                              playback.isPlaying ? 'Pause' : 'Play',
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // Next — excluded from parent Semantics
+                      ExcludeSemantics(
+                        child: _MiniPlayerButton(
+                          icon: Icons.skip_next_rounded,
+                          onTap: playback.canPlayNext
+                              ? () => ref
+                                  .read(playbackProvider.notifier)
+                                  .skipNext()
+                              : null,
+                          tooltip: 'Next',
+                          size: 32,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -138,6 +150,7 @@ class _MiniPlayerButton extends StatelessWidget {
     return Semantics(
       label: tooltip,
       button: true,
+      enabled: onTap != null,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(size),

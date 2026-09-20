@@ -32,11 +32,21 @@ final youtubePlayerControllerProvider =
 /// forwards them into the Riverpod PlaybackNotifier. Also receives
 /// commands from the notifier (play, pause, seek, load) and sends
 /// them to the controller.
+///
+/// Includes a **ready-guard**: if [loadVideo] is called before the
+/// IFrame has fully initialised, the video ID is queued and replayed
+/// the moment the player becomes ready.
 class YouTubePlayerService {
   final YoutubePlayerController controller;
   final PlaybackNotifier playbackNotifier;
   Timer? _positionTimer;
   bool _isDisposed = false;
+
+  /// True once the player has fired at least one non-unStarted state.
+  bool _isPlayerReady = false;
+
+  /// Video ID waiting to be loaded once the player becomes ready.
+  String? _pendingVideoId;
 
   YouTubePlayerService({
     required this.controller,
@@ -57,14 +67,17 @@ class YouTubePlayerService {
   void _onPlayerStateChanged(YoutubePlayerValue value) {
     switch (value.playerState) {
       case PlayerState.playing:
+        _markReady();
         playbackNotifier.setStatus(app.PlayStatus.playing);
         _startPositionPolling();
         break;
       case PlayerState.paused:
+        _markReady();
         playbackNotifier.setStatus(app.PlayStatus.paused);
         _stopPositionPolling();
         break;
       case PlayerState.buffering:
+        _markReady();
         playbackNotifier.setStatus(app.PlayStatus.buffering);
         break;
       case PlayerState.ended:
@@ -72,22 +85,58 @@ class YouTubePlayerService {
         playbackNotifier.onSongCompleted();
         break;
       case PlayerState.cued:
-        // Video is cued and ready — update duration
+        _markReady();
         _updateDuration();
         break;
       case PlayerState.unStarted:
+        // Not yet ready — do nothing
         break;
       default:
         break;
     }
   }
 
+  /// Mark the player as ready and flush any queued video load.
+  void _markReady() {
+    if (_isPlayerReady) return;
+    _isPlayerReady = true;
+    final pending = _pendingVideoId;
+    if (pending != null) {
+      _pendingVideoId = null;
+      // Small delay so the IFrame settles before we issue loadVideoById
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!_isDisposed) {
+          controller.loadVideoById(videoId: pending);
+        }
+      });
+    }
+  }
+
   /// Load and auto-play a YouTube video by its ID.
+  ///
+  /// If the player is not yet ready, the video ID is queued and will
+  /// be loaded automatically once the player fires its first state event.
   Future<void> loadVideo(String videoId) async {
     _stopPositionPolling();
     playbackNotifier.setStatus(app.PlayStatus.loading);
+
+    if (!_isPlayerReady) {
+      // Queue it — will be replayed in _markReady()
+      _pendingVideoId = videoId;
+      // Also schedule a fallback in case the player never fires a state change
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!_isDisposed && !_isPlayerReady) {
+          _isPlayerReady = true;
+          _pendingVideoId = null;
+          controller.loadVideoById(videoId: videoId);
+        }
+      });
+      return;
+    }
+
+    // Player is ready — load immediately
+    _pendingVideoId = null;
     controller.loadVideoById(videoId: videoId);
-    // Duration will be updated once the video starts playing/cues
     _scheduleDurationFetch();
   }
 
@@ -103,19 +152,20 @@ class YouTubePlayerService {
 
   /// Seek to a specific position.
   Future<void> seekTo(Duration position) async {
-    controller.seekTo(seconds: position.inSeconds.toDouble(), allowSeekAhead: true);
+    controller.seekTo(
+        seconds: position.inSeconds.toDouble(), allowSeekAhead: true);
   }
 
   /// Start polling for position updates (every 500ms).
   void _startPositionPolling() {
     _stopPositionPolling();
-    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+    _positionTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (_) async {
       if (_isDisposed) return;
       try {
         final currentTime = await controller.currentTime;
-        final seconds = currentTime;
         playbackNotifier.updatePosition(
-          Duration(milliseconds: (seconds * 1000).toInt()),
+          Duration(milliseconds: (currentTime * 1000).toInt()),
         );
       } catch (_) {
         // Ignore errors during polling
@@ -180,7 +230,7 @@ final enableHiddenPlayerProvider = Provider<bool>((ref) => true);
 /// Widget that hosts the hidden YouTube player in the widget tree.
 ///
 /// Must be placed in the AppShell so the player persists across navigations.
-/// Renders at 1x1 pixel with no visual presence.
+/// Renders at 1x1 pixel with zero opacity — audio still plays.
 class HiddenYoutubePlayer extends ConsumerWidget {
   const HiddenYoutubePlayer({super.key});
 
@@ -192,7 +242,7 @@ class HiddenYoutubePlayer extends ConsumerWidget {
     }
 
     final controller = ref.watch(youtubePlayerControllerProvider);
-    // Eagerly initialize the service so it starts listening
+    // Eagerly initialise the service so it starts listening immediately
     ref.watch(youtubePlayerServiceProvider);
 
     return SizedBox(

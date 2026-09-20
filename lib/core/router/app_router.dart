@@ -9,6 +9,58 @@ import 'package:sonic_player/presentation/playlists/playlist_detail_screen.dart'
 import 'package:sonic_player/presentation/settings/settings_screen.dart';
 import 'package:sonic_player/presentation/shell/app_shell.dart';
 
+/// Shared fade+scale page transition for shell tab switches.
+CustomTransitionPage<void> _fadeTabPage({
+  required Widget child,
+  required GoRouterState state,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 200),
+    reverseTransitionDuration: const Duration(milliseconds: 150),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOut,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.97, end: 1.0).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+/// Shared slide-from-right page transition for full-screen pushes.
+CustomTransitionPage<void> _slideRightPage({
+  required Widget child,
+  required GoRouterState state,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      );
+    },
+  );
+}
+
 class AppRouter {
   AppRouter._();
 
@@ -27,80 +79,78 @@ class AppRouter {
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _fadeTabPage(child: const HomeScreen(), state: state),
           ),
           GoRoute(
             path: '/search',
             name: 'search',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SearchScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _fadeTabPage(child: const SearchScreen(), state: state),
           ),
           GoRoute(
             path: '/library',
             name: 'library',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: LibraryScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _fadeTabPage(child: const LibraryScreen(), state: state),
           ),
         ],
       ),
-      // Full screen routes (above bottom nav)
+      // Full-screen player — slides up from bottom
       GoRoute(
         path: '/player',
         name: 'player',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (context, state) => CustomTransitionPage<void>(
+          key: state.pageKey,
           child: const PlayerScreen(),
+          transitionDuration: const Duration(milliseconds: 350),
+          reverseTransitionDuration: const Duration(milliseconds: 300),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            );
             return SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0, 1),
                 end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
+              ).animate(curved),
+              child: FadeTransition(
+                opacity: Tween<double>(begin: 0.8, end: 1.0).animate(curved),
+                child: child,
+              ),
             );
           },
         ),
       ),
+      // Queue — slides in from right
       GoRoute(
         path: '/queue',
         name: 'queue',
         parentNavigatorKey: _rootNavigatorKey,
-        pageBuilder: (context, state) => CustomTransitionPage(
-          child: const QueueScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-              )),
-              child: child,
-            );
-          },
-        ),
+        pageBuilder: (context, state) =>
+            _slideRightPage(child: const QueueScreen(), state: state),
       ),
+      // Playlist detail — slides in from right
       GoRoute(
         path: '/playlist/:id',
         name: 'playlist-detail',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => PlaylistDetailScreen(
-          playlistId: state.pathParameters['id']!,
+        pageBuilder: (context, state) => _slideRightPage(
+          child: PlaylistDetailScreen(
+            playlistId: state.pathParameters['id']!,
+          ),
+          state: state,
         ),
       ),
+      // Settings — slides in from right
       GoRoute(
         path: '/settings',
         name: 'settings',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const SettingsScreen(),
+        pageBuilder: (context, state) =>
+            _slideRightPage(child: const SettingsScreen(), state: state),
       ),
     ],
   );

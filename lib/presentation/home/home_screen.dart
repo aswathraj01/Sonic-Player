@@ -4,14 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:sonic_player/core/theme/app_theme.dart';
 import 'package:sonic_player/core/constants/app_constants.dart';
 import 'package:sonic_player/domain/entities/song.dart';
-
 import 'package:sonic_player/services/playback/playback_provider.dart';
 import 'package:sonic_player/services/storage/library_provider.dart';
 import 'package:sonic_player/presentation/widgets/section_header.dart';
 import 'package:sonic_player/presentation/widgets/song_tile.dart';
 import 'package:sonic_player/presentation/widgets/album_card.dart';
 import 'package:sonic_player/presentation/widgets/state_views.dart';
-
+import 'package:sonic_player/presentation/widgets/bottom_sheet_handle.dart';
 import 'package:sonic_player/services/youtube/trending_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -44,19 +43,26 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_getGreeting()},',
-                          style: AppTextStyles.greeting,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Music always sounds better here 🎵',
-                          style: AppTextStyles.greetingSub,
-                        ),
-                      ],
+                    // Flexible prevents overflow on narrow screens
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${_getGreeting()},',
+                            style: AppTextStyles.greeting,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Music always sounds better here 🎵',
+                            style: AppTextStyles.greetingSub,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                     Row(
                       children: [
@@ -267,15 +273,7 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const BottomSheetHandle(),
             ListTile(
               leading: Icon(
                 isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
@@ -334,15 +332,7 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const BottomSheetHandle(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text('Add to playlist',

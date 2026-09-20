@@ -4,17 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sonic_player/main.dart';
 import 'package:sonic_player/services/storage/library_provider.dart';
 import 'package:sonic_player/services/playback/youtube_player_service.dart';
-import 'package:sonic_player/services/playback/playback_provider.dart';
 import 'package:sonic_player/domain/entities/song.dart';
 import 'package:sonic_player/domain/entities/playlist.dart';
-import 'package:sonic_player/domain/entities/playback_state.dart';
 
 void main() {
   testWidgets('App smoke test - app starts and shows home screen',
       (WidgetTester tester) async {
     // Override database-dependent and platform-dependent providers.
-    // We must override the playbackProvider too since AppShell now reads
-    // youtubePlayerServiceProvider and attaches it to the PlaybackNotifier.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -32,9 +28,7 @@ void main() {
           youtubePlayerServiceProvider.overrideWith(
             (ref) => _MockYouTubePlayerService(),
           ),
-          youtubePlayerControllerProvider.overrideWithValue(
-            _MockYoutubePlayerController(),
-          ),
+          enableHiddenPlayerProvider.overrideWithValue(false),
         ],
         child: const SonicPlayerApp(),
       ),
@@ -74,11 +68,5 @@ class _MockRecentlyPlayedNotifier extends StateNotifier<List<Song>>
 /// Mock YouTube player service that does nothing (no WebView needed).
 class _MockYouTubePlayerService implements YouTubePlayerService {
   @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
-
-/// Fake YoutubePlayerController to avoid WebView platform requirement.
-/// We use dynamic dispatch (noSuchMethod) since we never call real methods in tests.
-class _MockYoutubePlayerController {
   dynamic noSuchMethod(Invocation invocation) => null;
 }

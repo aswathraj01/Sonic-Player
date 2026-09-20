@@ -7,6 +7,7 @@ import 'package:sonic_player/domain/entities/playback_state.dart';
 import 'package:sonic_player/services/playback/playback_provider.dart';
 import 'package:sonic_player/services/storage/library_provider.dart';
 import 'package:sonic_player/presentation/widgets/artwork_widget.dart';
+import 'package:sonic_player/presentation/widgets/bottom_sheet_handle.dart';
 
 class PlayerScreen extends ConsumerWidget {
   const PlayerScreen({super.key});
@@ -46,34 +47,53 @@ class PlayerScreen extends ConsumerWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // Top bar
+              // Top bar — Flexible center prevents overflow on small screens
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      onPressed: () => context.pop(),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      color: AppColors.textPrimary,
-                      iconSize: 30,
-                      tooltip: 'Close player',
+                    Semantics(
+                      label: 'Close player',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                        color: AppColors.textPrimary,
+                        iconSize: 30,
+                        tooltip: 'Close player',
+                      ),
                     ),
-                    Column(
-                      children: [
-                        Text('Now Playing',
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Now Playing',
                             style: AppTextStyles.labelMedium
-                                .copyWith(color: AppColors.textSecondary)),
-                        Text('PLAYING FROM SEARCH',
-                            style: AppTextStyles.caption),
-                      ],
+                                .copyWith(color: AppColors.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'PLAYING FROM SEARCH',
+                            style: AppTextStyles.caption,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.more_vert_rounded),
-                      color: AppColors.textPrimary,
-                      tooltip: 'More options',
+                    Semantics(
+                      label: 'More options',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.more_vert_rounded),
+                        color: AppColors.textPrimary,
+                        tooltip: 'More options',
+                      ),
                     ),
                   ],
                 ),
@@ -99,10 +119,13 @@ class PlayerScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    child: ArtworkWidget(
-                      url: song.highResThumbnailUrl ?? song.thumbnailUrl,
-                      size: double.infinity,
-                      borderRadius: AppConstants.borderRadiusXLarge,
+                    child: Semantics(
+                      label: 'Album art for ${song.title}',
+                      child: ArtworkWidget(
+                        url: song.highResThumbnailUrl ?? song.thumbnailUrl,
+                        size: double.infinity,
+                        borderRadius: AppConstants.borderRadiusXLarge,
+                      ),
                     ),
                   ),
                 ),
@@ -135,22 +158,32 @@ class PlayerScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        ref
-                            .read(likedSongsProvider.notifier)
-                            .toggleLike(song);
-                      },
-                      icon: Icon(
-                        isLiked
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        color: isLiked
-                            ? AppColors.heartActive
-                            : AppColors.textSecondary,
+                    Semantics(
+                      label: isLiked ? 'Unlike ${song.title}' : 'Like ${song.title}',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () {
+                          ref
+                              .read(likedSongsProvider.notifier)
+                              .toggleLike(song);
+                        },
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(scale: animation, child: child),
+                          child: Icon(
+                            isLiked
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            key: ValueKey(isLiked),
+                            color: isLiked
+                                ? AppColors.heartActive
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        iconSize: 28,
+                        tooltip: isLiked ? 'Unlike' : 'Like',
                       ),
-                      iconSize: 28,
-                      tooltip: isLiked ? 'Unlike' : 'Like',
                     ),
                   ],
                 ),
@@ -163,28 +196,33 @@ class PlayerScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6),
-                        overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14),
-                      ),
-                      child: Slider(
-                        value: playback.progress,
-                        onChanged: (value) {
-                          final position = Duration(
-                            milliseconds:
-                                (value * playback.duration.inMilliseconds)
-                                    .toInt(),
-                          );
-                          ref
-                              .read(playbackProvider.notifier)
-                              .seekTo(position);
-                        },
-                        activeColor: AppColors.primary,
-                        inactiveColor: AppColors.progressBackground,
+                    Semantics(
+                      label:
+                          'Seek bar. ${_formatDuration(playback.position)} of ${_formatDuration(playback.duration)}',
+                      slider: true,
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3,
+                          thumbShape:
+                              const RoundSliderThumbShape(enabledThumbRadius: 6),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 14),
+                        ),
+                        child: Slider(
+                          value: playback.progress,
+                          onChanged: (value) {
+                            final position = Duration(
+                              milliseconds: (value *
+                                      playback.duration.inMilliseconds)
+                                  .toInt(),
+                            );
+                            ref
+                                .read(playbackProvider.notifier)
+                                .seekTo(position);
+                          },
+                          activeColor: AppColors.primary,
+                          inactiveColor: AppColors.progressBackground,
+                        ),
                       ),
                     ),
                     Padding(
@@ -216,81 +254,112 @@ class PlayerScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Shuffle
-                    IconButton(
-                      onPressed: () {
-                        ref
+                    Semantics(
+                      label: playback.shuffleEnabled
+                          ? 'Shuffle on'
+                          : 'Shuffle off',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () => ref
                             .read(playbackProvider.notifier)
-                            .toggleShuffle();
-                      },
-                      icon: Icon(
-                        Icons.shuffle_rounded,
-                        color: playback.shuffleEnabled
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
+                            .toggleShuffle(),
+                        icon: Icon(
+                          Icons.shuffle_rounded,
+                          color: playback.shuffleEnabled
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                        iconSize: 24,
+                        tooltip: 'Shuffle',
                       ),
-                      iconSize: 24,
-                      tooltip: 'Shuffle',
                     ),
                     // Previous
-                    IconButton(
-                      onPressed: () {
-                        ref.read(playbackProvider.notifier).skipPrevious();
-                      },
-                      icon: const Icon(Icons.skip_previous_rounded),
-                      color: AppColors.textPrimary,
-                      iconSize: 36,
-                      tooltip: 'Previous',
+                    Semantics(
+                      label: 'Previous song',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () => ref
+                            .read(playbackProvider.notifier)
+                            .skipPrevious(),
+                        icon: const Icon(Icons.skip_previous_rounded),
+                        color: AppColors.textPrimary,
+                        iconSize: 36,
+                        tooltip: 'Previous',
+                      ),
                     ),
                     // Play/Pause
-                    GestureDetector(
-                      onTap: () {
-                        ref
+                    Semantics(
+                      label: playback.isPlaying ? 'Pause' : 'Play',
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () => ref
                             .read(playbackProvider.notifier)
-                            .togglePlayPause();
-                      },
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.textPrimary,
-                        ),
-                        child: Icon(
-                          playback.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: AppColors.background,
-                          size: 36,
+                            .togglePlayPause(),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.textPrimary,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              playback.isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              key: ValueKey(playback.isPlaying),
+                              color: AppColors.background,
+                              size: 36,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                     // Next
-                    IconButton(
-                      onPressed: () {
-                        ref.read(playbackProvider.notifier).skipNext();
-                      },
-                      icon: const Icon(Icons.skip_next_rounded),
-                      color: AppColors.textPrimary,
-                      iconSize: 36,
-                      tooltip: 'Next',
+                    Semantics(
+                      label: 'Next song',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () =>
+                            ref.read(playbackProvider.notifier).skipNext(),
+                        icon: const Icon(Icons.skip_next_rounded),
+                        color: AppColors.textPrimary,
+                        iconSize: 36,
+                        tooltip: 'Next',
+                      ),
                     ),
                     // Repeat
-                    IconButton(
-                      onPressed: () {
-                        ref
+                    Semantics(
+                      label: playback.repeatMode == RepeatMode.off
+                          ? 'Repeat off'
+                          : playback.repeatMode == RepeatMode.all
+                              ? 'Repeat all'
+                              : 'Repeat one',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () => ref
                             .read(playbackProvider.notifier)
-                            .cycleRepeatMode();
-                      },
-                      icon: Icon(
-                        playback.repeatMode == RepeatMode.one
-                            ? Icons.repeat_one_rounded
-                            : Icons.repeat_rounded,
-                        color: playback.repeatMode != RepeatMode.off
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
+                            .cycleRepeatMode(),
+                        icon: Icon(
+                          playback.repeatMode == RepeatMode.one
+                              ? Icons.repeat_one_rounded
+                              : Icons.repeat_rounded,
+                          color: playback.repeatMode != RepeatMode.off
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
+                        iconSize: 24,
+                        tooltip: 'Repeat',
                       ),
-                      iconSize: 24,
-                      tooltip: 'Repeat',
                     ),
                   ],
                 ),
@@ -316,8 +385,7 @@ class PlayerScreen extends ConsumerWidget {
                       onPressed: () {},
                       icon: const Icon(Icons.lyrics_rounded,
                           color: AppColors.textSecondary, size: 20),
-                      label: Text('Lyrics',
-                          style: AppTextStyles.labelMedium),
+                      label: Text('Lyrics', style: AppTextStyles.labelMedium),
                     ),
                     // Queue
                     IconButton(
@@ -357,15 +425,7 @@ class PlayerScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const BottomSheetHandle(),
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -376,8 +436,9 @@ class PlayerScreen extends ConsumerWidget {
                     current == q
                         ? Icons.radio_button_checked_rounded
                         : Icons.radio_button_off_rounded,
-                    color:
-                        current == q ? AppColors.primary : AppColors.textTertiary,
+                    color: current == q
+                        ? AppColors.primary
+                        : AppColors.textTertiary,
                   ),
                   title: Text(q.label, style: AppTextStyles.bodyMedium),
                   onTap: () {

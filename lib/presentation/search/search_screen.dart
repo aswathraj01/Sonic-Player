@@ -11,6 +11,7 @@ import 'package:sonic_player/services/storage/library_provider.dart';
 import 'package:sonic_player/presentation/widgets/song_tile.dart';
 import 'package:sonic_player/presentation/widgets/artwork_widget.dart';
 import 'package:sonic_player/presentation/widgets/state_views.dart';
+import 'package:sonic_player/presentation/widgets/bottom_sheet_handle.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -376,15 +377,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const BottomSheetHandle(),
             ListTile(
               leading: Icon(
                 isLiked

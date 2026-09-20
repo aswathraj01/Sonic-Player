@@ -8,10 +8,28 @@ import 'package:sonic_player/services/playback/playback_provider.dart';
 
 /// Shell wrapper that provides bottom navigation and the persistent mini-player.
 /// Also hosts the hidden YouTube IFrame player so playback persists across screens.
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
 
   const AppShell({super.key, required this.child});
+
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  @override
+  void initState() {
+    super.initState();
+    // Attach the player service once on init so the notifier can forward
+    // commands to the real YouTube player from the very first interaction.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final service = ref.read(youtubePlayerServiceProvider);
+        ref.read(playbackProvider.notifier).attachPlayerService(service);
+      }
+    });
+  }
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -21,29 +39,24 @@ class AppShell extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Wire up the YouTube player service ↔ PlaybackNotifier.
-    // This ensures play/pause/seek/load commands reach the real YouTube player.
-    final playerService = ref.watch(youtubePlayerServiceProvider);
-    ref.read(playbackProvider.notifier).attachPlayerService(playerService);
-
+  Widget build(BuildContext context) {
     final currentIndex = _currentIndex(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          child,
-          // Hidden 1x1px YouTube IFrame player — always in the widget tree
+          widget.child,
+          // Hidden 1×1 px YouTube IFrame player — always in the widget tree
           const HiddenYoutubePlayer(),
         ],
       ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Mini player
+          // Mini player (visible only when a song is loaded)
           const MiniPlayer(),
-          // Bottom navigation
+          // Bottom navigation bar
           Container(
             decoration: BoxDecoration(
               color: AppColors.navBackground,
@@ -119,21 +132,35 @@ class _NavItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  color: isActive ? AppColors.navActive : AppColors.navInactive,
-                  size: 22,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppColors.primary.withValues(alpha: 0.15)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color:
+                        isActive ? AppColors.navActive : AppColors.navInactive,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  label,
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight:
+                        isActive ? FontWeight.w600 : FontWeight.w400,
                     color:
                         isActive ? AppColors.navActive : AppColors.navInactive,
                     height: 1.0,
                   ),
+                  child: Text(label),
                 ),
               ],
             ),
