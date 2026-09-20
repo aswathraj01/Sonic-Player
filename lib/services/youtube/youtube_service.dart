@@ -132,6 +132,9 @@ class YouTubeService {
         duration: _parseDuration(contentDetails['duration'] ?? 'PT0S'),
         youtubeId: videoId,
       );
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Get trending music videos.
