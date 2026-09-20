@@ -2,18 +2,22 @@
 
 ## CURRENT STATE
 
-- **Current Phase:** Phase 3 & 4 (YouTube Search + IFrame Playback Integration) - COMPLETE
-- **Current Task:** TASK-004 — Trending Data & Git Push — COMPLETE
-- **Build Status:** `flutter analyze` — PASS (0 issues)
+- **Current Phase:** Phase 5 — Animations, Playback Fix, App Icon, Accessibility, Firebase Deploy — COMPLETE
+- **Current Task:** TASK-005 — Full Fixes + Firebase Hosting — COMPLETE
+- **Build Status:** `flutter analyze` — PASS (0 issues) | `flutter test` — PASS (1/1)
 - **Flutter Version:** 3.32.5 (stable)
 - **Dart Version:** 3.8.1
-- **Emulator:** Pixel 6 (running, emulator-5554)
+- **Emulator:** Pixel 6 (emulator-5554)
+- **Live Web URL:** https://sonic-player-app.web.app
+- **Firebase Project:** sonic-player-app
+- **GitHub:** https://github.com/aswathraj01/Sonic-Player (branch: main)
 
 ### Frontend Status
 - All screens implemented (Home, Search, Player, Queue, Library, Playlist Detail, Settings)
 - Shell with bottom navigation and persistent mini-player
-- GoRouter navigation configured
+- GoRouter navigation with smooth animations on all routes
 - Dark theme design system complete
+- App icon: blue/purple S+headphones across Android mipmap + web
 
 ### Backend Status
 - SQLite database service created (schema defined, CRUD operations)
@@ -22,12 +26,13 @@
 
 ### Playback Status
 - PlaybackNotifier (state management) implemented
-- YouTube IFrame player dependency added but NOT yet integrated into UI
-- No actual audio playback yet — UI state management only
+- YouTube IFrame player integrated with **ready-guard pattern** (video queued before init, replayed on ready)
+- AppShell attaches player service once in initState (ConsumerStatefulWidget)
+- Position polling via Timer every 500ms
 
 ### Testing Status
-- `flutter analyze`: PASS
-- `flutter test`: PASS (1 test, mock overrides for sqflite)
+- `flutter analyze`: PASS (0 issues)
+- `flutter test`: PASS (1/1 test)
 - Emulator test: PASS (app launched, no crashes)
 
 ---
