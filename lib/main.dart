@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
     show databaseFactoryFfiWeb;
 import 'package:sqflite/sqflite.dart' show databaseFactory;
@@ -17,11 +16,20 @@ void main() async {
   // Load environment variables
   await dotenv.load(fileName: '.env');
 
-  // Initialize SQLite: use web factory on web, default on native
+  // Initialize SQLite: use web factory on web, default on native.
+  // On web the WASM worker requires SharedArrayBuffer (COOP/COEP headers).
+  // We wrap in try-catch so the app still launches even if the DB isn't
+  // available (e.g., in restricted browser environments).
   if (kIsWeb) {
-    databaseFactory = databaseFactoryFfiWeb;
+    try {
+      databaseFactory = databaseFactoryFfiWeb;
+      await DatabaseService().database;
+    } catch (e) {
+      debugPrint('SQLite web init skipped: $e');
+    }
+  } else {
+    await DatabaseService().database;
   }
-  await DatabaseService().database;
 
   if (!kIsWeb) {
     // Set system UI overlay style for dark theme (native only)
